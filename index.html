@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>piece of memory</title>
+<meta name="description" content="잃어버린 기억의 조각이 있지 않나요?">
+<meta name="theme-color" content="#0b0c0d">
+<meta property="og:type" content="website">
+<meta property="og:title" content="piece of memory">
+<meta property="og:description" content="잃어버린 기억의 조각이 있지 않나요?">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0c0d'/%3E%3Cpath d='M18 22h10a5 5 0 1 1 8 0h10v10a5 5 0 1 0 0 8v10H18z' fill='%2314b8a6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- text fonts for the gap text (KR / EN / JP / CN); CJK families are unicode-range subset, only the glyphs used are downloaded -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Inter:wght@400;700&family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Shippori+Mincho:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&display=swap">
+<style>
+  :root {
+    --bg: #e9ebed;
+    --stage: #d6dade;
+    --panel: #f6f7f8;
+    --card: #ffffff;
+    --ink: #15181b;
+    --text2: #3b4148;
+    --muted: #7a828a;
+    --line: #dcdfe3;
+    --black: #0b0c0d;
+    --accent: #14b8a6;
+    --accent-strong: #0d9488;
+    --accent-soft: rgba(20, 184, 166, .12);
+    --accent-ink: #05201d;
+    --topbar: 56px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Pretendard Variable", Pretendard, "Yu Gothic UI", "Microsoft YaHei UI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+    line-height: 1.5; display: flex; flex-direction: column; min-height: 100%;
+  }
+  .topbar {
+    height: var(--topbar); flex: none; background: var(--black); color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #23272b;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+  .brand h1 i { font-style: normal; color: var(--accent); }
+  .brand > span { font-size: 13px; color: #8b939b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  .langtabs { display: flex; gap: 2px; background: rgba(255,255,255,.06); border: 1px solid #262b30; border-radius: 9999px; padding: 3px; }
+  .langtabs button {
+    font: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; border: 0; border-radius: 9999px;
+    background: transparent; color: #9aa1a8; cursor: pointer;
+  }
+  .langtabs button:hover:not(.active) { color: #fff; background: transparent; }
+  .langtabs button.active { background: var(--accent); color: var(--accent-ink); }
+
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 400px; min-height: 0; }
+  .stage {
+    position: sticky; top: var(--topbar); height: calc(100vh - var(--topbar));
+    background: radial-gradient(ellipse at 50% 40%, #e2e5e8 0%, var(--stage) 70%);
+    padding: 20px 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; overflow: hidden;
+  }
+  .stage.drag { outline: 3px dashed var(--accent); outline-offset: -12px; }
+  .viewtabs { display: flex; gap: 4px; background: rgba(255,255,255,.7); border: 1px solid var(--line); border-radius: 9999px; padding: 3px; flex: none; }
+  .viewtabs button { border: 0; background: transparent; padding: 6px 16px; font-size: 13px; font-weight: 700; }
+  .viewtabs button.active { background: var(--black); color: #fff; }
+  .viewtabs button.active:hover:not(:disabled) { background: var(--black); color: #fff; }
+  .view { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+  .wrap { position: relative; flex: none; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 10px 40px rgba(11,12,13,.28); border-radius: 4px; }
+  #gifImg { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 4px; box-shadow: 0 10px 40px rgba(11,12,13,.28); }
+  .wrap.edit { cursor: crosshair; }
+  .wrap.textdrag { cursor: grab; }
+  .tbox { position: absolute; border: 1.5px dashed var(--accent); background: rgba(20,184,166,.10); border-radius: 3px; pointer-events: none; }
+  .tbox.on { border-style: solid; border-width: 2px; background: rgba(20,184,166,.16); box-shadow: 0 0 0 1px rgba(11,12,13,.35); }
+  .tbox b { position: absolute; left: -2px; top: -20px; font: 700 11px/1 inherit; background: var(--accent); color: var(--accent-ink); padding: 3px 7px; border-radius: 9999px; white-space: nowrap; }
+  .tguide { position: absolute; background: #ff4d8d; pointer-events: none; z-index: 3; }
+  .tguide.v { width: 1px; top: 0; bottom: 0; }
+  .tguide.h { height: 1px; left: 0; right: 0; }
+  .anchor { display: grid; grid-template-columns: repeat(3, 30px); gap: 4px; }
+  .anchor button { width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 8px; position: relative; }
+  .anchor button::after { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .55; }
+  .anchor button[data-a$="l"]::after { left: 5px; } .anchor button[data-a$="c"]::after { left: 11px; } .anchor button[data-a$="r"]::after { left: 17px; }
+  .anchor button[data-a^="t"]::after { top: 5px; } .anchor button[data-a^="m"]::after { top: 11px; } .anchor button[data-a^="b"]::after { top: 17px; }
+  @media (pointer: coarse) { .anchor { grid-template-columns: repeat(3, 40px); } .anchor button { width: 40px; height: 40px; } .anchor button[data-a$="l"]::after { left: 8px; } .anchor button[data-a$="c"]::after { left: 15px; } .anchor button[data-a$="r"]::after { left: 22px; } .anchor button[data-a^="t"]::after { top: 8px; } .anchor button[data-a^="m"]::after { top: 15px; } .anchor button[data-a^="b"]::after { top: 22px; } }
+  #cv {
+    display: block; width: 100%; height: 100%; border-radius: 4px;
+    background: conic-gradient(#fff 25%, #d9dde1 0 50%, #fff 0 75%, #d9dde1 0) 0 0 / 16px 16px;
+  }
+  .sel { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 1px rgba(11,12,13,.45), inset 0 0 0 1px rgba(255,255,255,.55); cursor: move; }
+  .sel i { position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid var(--accent-strong); border-radius: 3px; }
+  .sel i[data-h=nw] { left: -7px; top: -7px; cursor: nwse-resize; }
+  .sel i[data-h=n]  { left: calc(50% - 6px); top: -7px; cursor: ns-resize; }
+  .sel i[data-h=ne] { right: -7px; top: -7px; cursor: nesw-resize; }
+  .sel i[data-h=e]  { right: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+  .sel i[data-h=se] { right: -7px; bottom: -7px; cursor: nwse-resize; }
+  .sel i[data-h=s]  { left: calc(50% - 6px); bottom: -7px; cursor: ns-resize; }
+  .sel i[data-h=sw] { left: -7px; bottom: -7px; cursor: nesw-resize; }
+  .sel i[data-h=w]  { left: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+  .sel.small i[data-h=n], .sel.small i[data-h=e], .sel.small i[data-h=s], .sel.small i[data-h=w] { display: none; }
+  .tagline { flex: none; margin: 0; font-size: 13px; color: var(--text2); text-align: center; letter-spacing: -0.01em; }
+
+  .side {
+    background: var(--panel); border-left: 1px solid var(--line);
+    height: calc(100vh - var(--topbar)); position: sticky; top: var(--topbar);
+    overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;
+  }
+  @media (max-width: 860px) {
+    .topbar { padding: 0 14px; }
+    .brand { flex-direction: column; align-items: flex-start; gap: 0; line-height: 1.25; }
+    .brand > span { font-size: 11px; }
+    #dlTop { display: none; }
+    .langtabs button { padding: 6px 9px; }
+    html, body { height: auto; }       /* let sticky header / preview span the whole scrolling page */
+    main { display: block; }
+    /* the preview stays pinned while the controls below scroll */
+    .stage { position: sticky; top: var(--topbar); z-index: 5; height: 46vh; min-height: 250px; padding: 10px 12px; gap: 8px; box-shadow: 0 6px 16px rgba(11,12,13,.18); }
+    .tagline { display: none; }
+    .view { min-height: 0; }
+    .side { position: static; height: auto; border-left: 0; border-top: 1px solid var(--line); overflow: visible; padding-bottom: 84px; }
+  }
+  .mobilebar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--black); border-top: 1px solid #23272b; }
+  @media (max-width: 860px) { .mobilebar { display: block; } }
+  .mobilebar button { width: 100%; padding: 12px 18px; font-size: 15px; }
+  /* touch devices: bigger handles and tap targets */
+  @media (pointer: coarse) {
+    .sel i { width: 24px; height: 24px; border-radius: 7px; }
+    .sel i::after { content: ''; position: absolute; inset: -10px; }
+    .sel i[data-h=nw] { left: -13px; top: -13px; }
+    .sel i[data-h=n]  { left: calc(50% - 12px); top: -13px; }
+    .sel i[data-h=ne] { right: -13px; top: -13px; }
+    .sel i[data-h=e]  { right: -13px; top: calc(50% - 12px); }
+    .sel i[data-h=se] { right: -13px; bottom: -13px; }
+    .sel i[data-h=s]  { left: calc(50% - 12px); bottom: -13px; }
+    .sel i[data-h=sw] { left: -13px; bottom: -13px; }
+    .sel i[data-h=w]  { left: -13px; top: calc(50% - 12px); }
+    button { min-height: 40px; }
+    .mini, .swatches button { min-height: 0; }
+    .swatches button { width: 30px; height: 30px; }
+    .swatches { gap: 8px; }
+    input[type=number], input[type=text], textarea, select { font-size: 16px; }
+    input[type=range] { height: 34px; }
+    input[type=color] { width: 48px; height: 40px; }
+    .check-row { min-height: 36px; }
+    .check-row input[type=checkbox] { width: 22px; height: 22px; }
+    .toggle-group button { padding: 9px 8px; }
+  }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .box h2 { margin: 0 0 12px; font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .02em; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row + .row { margin-top: 12px; }
+  .row > label { font-size: 13px; min-width: 76px; color: var(--text2); }
+  .row .val { font-size: 12px; color: var(--muted); min-width: 34px; text-align: right; }
+  .toggle-group { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+  .toggle-group button {
+    flex: 1; font-size: 12px; font-weight: 600; padding: 7px 8px; border-radius: 8px; white-space: nowrap;
+  }
+  .toggle-group button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .toggle-group button.active:hover:not(:disabled) { background: var(--accent); color: var(--accent-ink); }
+  .check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); cursor: pointer; }
+  .check-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+  input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+  input[type=color] { width: 40px; height: 32px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; flex: none; }
+  input[type=number] {
+    font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); width: 100%; min-width: 0;
+  }
+  button {
+    font: inherit; font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: 9999px;
+    border: 1px solid var(--line); background: #fff; color: var(--text2); cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 8px 18px; font-size: 14px; }
+  button.primary:hover:not(:disabled) { background: #2dd4bf; border-color: #2dd4bf; color: var(--accent-ink); }
+  button.dark { background: var(--black); border-color: var(--black); color: #fff; font-weight: 600; }
+  button.dark:hover:not(:disabled) { background: #23272b; border-color: #23272b; color: #fff; }
+  .full { width: 100%; }
+  .hint { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  input[type=file] { display: none; }
+  [hidden] { display: none !important; }
+
+  .numgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .numgrid label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-weight: 700; }
+  .numgrid label span { min-width: 26px; flex: none; white-space: nowrap; }
+  .shapegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .shape { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 12px; font-size: 12px; font-weight: 600; line-height: 1.2; }
+  .shape svg { width: 40px; height: 46px; }
+  .shape svg path { fill: var(--accent-soft); stroke: var(--accent-strong); stroke-width: 1.6; stroke-linejoin: round; }
+  .shape.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .shape.active:hover:not(:disabled) { background: var(--accent); color: var(--accent-ink); }
+  .shape.active svg path { fill: rgba(255,255,255,.55); stroke: var(--accent-ink); }
+  .nudge { display: flex; gap: 8px 14px; flex-wrap: wrap; margin-top: 12px; }
+  .nudge-group { display: flex; align-items: center; gap: 4px; }
+  .nudge-group span { font-size: 12px; color: var(--muted); font-weight: 700; margin-right: 4px; }
+  .nudge button { padding: 6px 11px; min-width: 38px; touch-action: manipulation; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chips button { padding: 4px 12px; font-size: 12px; font-weight: 600; }
+  .chips button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chips button.active:hover:not(:disabled) { background: var(--accent); color: var(--accent-ink); }
+  textarea {
+    font: inherit; font-size: 13px; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+    background: #fff; color: var(--ink); resize: vertical; min-height: 64px; line-height: 1.45;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  select {
+    font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); flex: 1; min-width: 0;
+  }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .swatches button { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+  .swatches button:hover:not(:disabled) { box-shadow: 0 0 0 2px var(--accent); background: inherit; }
+  /* mobile / touch polish (kept last so it wins the cascade) */
+  .viewtabs button { white-space: nowrap; }
+  #goTextView + .row { margin-top: 14px; }
+  @media (max-width: 860px) {
+    .viewtabs { max-width: 100%; gap: 2px; padding: 3px; }
+    .viewtabs button { padding: 7px 10px; font-size: 12px; }
+    .stage { height: auto; min-height: 0; justify-content: flex-start; }
+    .view { flex: none; }
+  }
+  @media (pointer: coarse) {
+    .swatches { gap: 8px; }
+    .swatches button { width: 30px; height: 30px; }
+    .chips button, .nudge button { min-height: 40px; }
+    .shape { padding: 10px 4px 8px; }
+    input[type=color] { width: 48px; height: 40px; }
+    select, input[type=number] { min-height: 40px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1><span style="color:#fff;font-size:inherit">piece of </span><i>memory</i></h1>
+    <span>제작: <a href="https://x.com/swoonqx" target="_blank" rel="noopener noreferrer" style="color:#8b939b; text-decoration:none;">𝕏 @swoonqx</a></span>
+  </div>
+  <div class="topbar-actions">
+    <div class="langtabs" id="langTabs" role="tablist" aria-label="Language / 언어 선택">
+      <button type="button" data-lang="ko" role="tab">KR</button>
+      <button type="button" data-lang="en" role="tab">EN</button>
+      <button type="button" data-lang="ja" role="tab">JP</button>
+      <button type="button" data-lang="zh" role="tab">CN</button>
+    </div>
+    <button id="dlTop" class="primary" data-i18n="download">이미지 저장</button>
+  </div>
+</header>
+
+<main>
+  <section class="stage" id="stage">
+    <div class="viewtabs" id="viewTabs">
+      <button type="button" class="active" data-view="edit" data-i18n="viewEdit">영역 편집</button>
+      <button type="button" data-view="text" data-i18n="viewText">글자 위치</button>
+      <button type="button" data-view="result" data-i18n="viewResult">완성 미리보기</button>
+      <button type="button" data-view="gif" id="viewGifBtn" disabled data-i18n="viewGif">완성된 GIF</button>
+    </div>
+    <div class="view" id="view">
+      <div class="wrap edit" id="wrap">
+        <canvas id="cv" aria-label="preview"></canvas>
+        <div class="sel" id="sel">
+          <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i><i data-h="e"></i>
+          <i data-h="se"></i><i data-h="s"></i><i data-h="sw"></i><i data-h="w"></i>
+        </div>
+      </div>
+      <img id="gifImg" alt="result GIF" hidden>
+    </div>
+    <p class="tagline" id="tagline"></p>
+  </section>
+
+  <aside class="side">
+    <div class="box">
+      <h2 data-i18n="image">이미지</h2>
+      <button id="pickBtn" class="full dark" data-i18n="pickImage">이미지 선택</button>
+      <button id="sampleBtn" class="full" style="margin-top:8px" data-i18n="useSample">샘플 이미지 사용</button>
+      <p class="hint" id="imgInfo"></p>
+      <p class="hint" data-i18n="imageHint">png · jpg · gif · webp 지원. 화면에 끌어다 놓거나 붙여넣기도 가능해요.</p>
+      <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp">
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="area">비어진 조각</h2>
+      <div class="numgrid">
+        <label><span>X</span><input type="number" id="nx" step="1"></label>
+        <label><span>Y</span><input type="number" id="ny" step="1"></label>
+        <label><span data-i18n="wLbl">너비</span><input type="number" id="nw" step="1"></label>
+        <label><span data-i18n="hLbl">높이</span><input type="number" id="nh" step="1"></label>
+      </div>
+      <div class="row" style="margin-top:12px"><label class="check-row" for="lock"><input type="checkbox" id="lock" checked><span data-i18n="lock">정사각형으로 고정</span></label>
+        <button type="button" id="centerBtn" style="margin-left:auto;padding:5px 12px;font-size:12px" data-i18n="center">가운데로</button></div>
+      <div class="nudge" id="nudge">
+        <div class="nudge-group"><span data-i18n="nudgeMove">이동</span>
+          <button type="button" data-n="l" aria-label="left">←</button><button type="button" data-n="u" aria-label="up">↑</button><button type="button" data-n="d" aria-label="down">↓</button><button type="button" data-n="r" aria-label="right">→</button></div>
+        <div class="nudge-group"><span data-i18n="nudgeSize">크기</span>
+          <button type="button" data-n="shrink" aria-label="smaller">−</button><button type="button" data-n="grow" aria-label="larger">＋</button></div>
+      </div>
+      <p class="hint" data-i18n="areaHint">'영역 편집' 화면에서 이미지 위를 드래그해 영역을 지정하세요. 모서리를 끌면 크기가, 안쪽을 끌면 위치가 바뀌어요. 이 영역의 크기대로 나머지 퍼즐틀이 만들어져요.</p>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="multiBox">빈 조각 늘리기</h2>
+      <p class="hint" style="margin-top:0" data-i18n="multiHint">'영역 편집' 화면에서 이미지의 빈 곳을 한 번 탭(클릭)하면 그 칸도 비워져요. 다시 탭하면 원래대로 돌아가요. 메인 조각을 움직이면 모든 칸이 함께 움직이고.</p>
+      <div class="row" style="margin-top:10px"><span class="hint" id="multiCount" style="margin:0"></span>
+        <button type="button" id="clearExtra" style="margin-left:auto;padding:5px 12px;font-size:12px" data-i18n="clearExtra">추가 조각 해제</button></div>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="textBox">빈 칸에 글귀</h2>
+      <textarea id="holeText" rows="3" maxlength="300"></textarea>
+      <div class="row" style="margin-top:12px"><label data-i18n="txFont">글꼴</label>
+        <select id="txFont"></select>
+        <label class="check-row" for="txBold" style="flex:none"><input type="checkbox" id="txBold"><span data-i18n="txBold">굵게</span></label></div>
+      <div class="row"><label data-i18n="txColor">글자색</label><input type="color" id="txColor" value="#ffffff">
+        <div class="swatches" id="txSw"></div></div>
+      <div class="row"><label data-i18n="txSize">글자 크기</label><input type="range" id="txSize" min="30" max="300" step="5" value="100"><span class="val" id="txSizeVal"></span></div>
+      <div class="row" style="align-items:flex-start"><label data-i18n="txAnchor" style="padding-top:6px">빠른 배치</label>
+        <div class="anchor" id="anchorGrid">
+          <button type="button" data-a="tl" aria-label="top left"></button><button type="button" data-a="tc" aria-label="top"></button><button type="button" data-a="tr" aria-label="top right"></button>
+          <button type="button" data-a="ml" aria-label="left"></button><button type="button" data-a="mc" aria-label="center"></button><button type="button" data-a="mr" aria-label="right"></button>
+          <button type="button" data-a="bl" aria-label="bottom left"></button><button type="button" data-a="bc" aria-label="bottom"></button><button type="button" data-a="br" aria-label="bottom right"></button>
+        </div></div>
+      <button type="button" id="goTextView" class="full dark" style="margin-top:10px" data-i18n="goTextView">✥ 화면에서 글자 끌어서 옮기기</button>
+      <div class="row"><label data-i18n="txX">가로 위치</label><input type="range" id="txX" min="-100" max="100" step="1" value="0"><span class="val" id="txXVal"></span></div>
+      <div class="row"><label data-i18n="txY">세로 위치</label><input type="range" id="txY" min="-100" max="100" step="1" value="0"><span class="val" id="txYVal"></span></div>
+      <button type="button" id="txReset" class="full" style="margin-top:10px" data-i18n="txReset">글자 위치 초기화</button>
+      <p class="hint" data-i18n="txHint"></p>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="shape">퍼즐 모양</h2>
+      <div class="shapegrid" id="shapeGrid"></div>
+      <div class="row" style="margin-top:14px"><label data-i18n="tabSize">돌기 크기</label>
+        <input type="range" id="tabSize" min="14" max="34" step="1" value="26"><span class="val" id="tabSizeVal"></span></div>
+      <div class="row"><label data-i18n="layout">돌기 방향</label>
+        <div class="toggle-group" id="dirGroup">
+          <button type="button" data-v="rand" class="active" data-i18n="dirRand">랜덤</button>
+          <button type="button" data-v="alt" data-i18n="dirAlt">번갈아</button>
+        </div></div>
+      <button type="button" id="shuffleBtn" class="full" style="margin-top:10px" data-i18n="shuffle">🎲 방향 다시 섞기</button>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="holeBox">비워진 조각 색</h2>
+      <div class="row"><label data-i18n="holeColor">배경색</label><input type="color" id="holeColor" value="#14171a">
+        <div class="swatches" id="holeSw"></div></div>
+      <div class="row"><label class="check-row" for="transp"><input type="checkbox" id="transp"><span data-i18n="transp">투명하게 비우기 (PNG)</span></label></div>
+      <div class="row"><label class="check-row" for="inner"><input type="checkbox" id="inner" checked><span data-i18n="inner">안쪽 그림자</span></label></div>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="frameBox">퍼즐틀</h2>
+      <div class="row"><label class="check-row" for="showFrame"><input type="checkbox" id="showFrame" checked><span data-i18n="showFrame">나머지 퍼즐틀 표시</span></label></div>
+      <div class="row"><label data-i18n="lineColor">선 색</label><input type="color" id="lineColor" value="#ffffff"></div>
+      <div class="row"><label data-i18n="lineW">선 굵기</label><input type="range" id="lineW" min="1" max="14" step="1" value="3"><span class="val" id="lineWVal"></span></div>
+      <div class="row"><label data-i18n="lineA">선 진하기</label><input type="range" id="lineA" min="10" max="100" step="5" value="85"><span class="val" id="lineAVal"></span></div>
+      <div class="row"><label class="check-row" for="bevel"><input type="checkbox" id="bevel" checked><span data-i18n="bevel">입체감 (빛·그림자)</span></label></div>
+    </div>
+
+    <div class="box">
+      <h2 data-i18n="animBox">퍼즐 애니메이션</h2>
+      <div class="row"><label data-i18n="animMode">동작</label>
+        <div class="toggle-group" id="modeGroup">
+          <button type="button" data-v="in" class="active" data-i18n="modeIn">맞추기</button>
+          <button type="button" data-v="out" data-i18n="modeOut">빼가기</button>
+        </div></div>
+      <div class="row"><label data-i18n="animFrom">들어오는 방향</label>
+        <div class="toggle-group" id="fromGroup">
+          <button type="button" data-v="top" class="active" data-i18n="fromTop">위</button>
+          <button type="button" data-v="bottom" data-i18n="fromBottom">아래</button>
+          <button type="button" data-v="left" data-i18n="fromLeft">왼쪽</button>
+          <button type="button" data-v="right" data-i18n="fromRight">오른쪽</button>
+          <button type="button" data-v="diag" data-i18n="fromDiag">대각선</button>
+        </div></div>
+      <div class="row"><label class="check-row" for="spin"><input type="checkbox" id="spin" checked><span data-i18n="animSpin">기울어진 채로 날아오기</span></label></div>
+      <p class="hint" data-i18n="animHint">맞추기: 조각이 빈 칸에 들어가요. 빼가기: 채워진 조각이 빠져나가요.</p>
+    </div>
+
+    <div class="box" id="gifBox"></div>
+
+    <div class="box">
+      <h2 data-i18n="save">저장</h2>
+      <div class="row"><label data-i18n="fmt">형식</label>
+        <div class="toggle-group" id="fmtGroup">
+          <button type="button" data-v="png" class="active">PNG</button>
+          <button type="button" data-v="jpg">JPG</button>
+        </div></div>
+      <p class="hint" id="saveInfo"></p>
+      <button id="dlBtn" class="primary full" style="margin-top:12px" data-i18n="download">이미지 저장</button>
+      <p class="hint" data-i18n="license">만든 이미지는 자유롭게 사용 가능합니다.</p>
+    </div>
+  </aside>
+</main>
+<div class="mobilebar"><button id="dlBar" class="primary" data-i18n="download">이미지 저장</button></div>
+
+<script src="gif-export.js"></script>
+<script src="color-picker.js"></script>
+<script>
+'use strict';
+let gx = null;   // GifExport panel (created after the puzzle code below)
+/* ============================== i18n ============================== */
+const LANGS = ['ko', 'en', 'ja', 'zh'];
+const S = {
+  madeBy: ['제작:', 'Made by:', '制作:', '制作:'],
+  tagline: ['잃어버린 기억의 조각이 있지 않나요?', 'Is there a piece of your memory that went missing?', '失くしてしまった記憶のかけらはありませんか？', '你是否遗失了一块记忆的碎片？'],
+  download: ['이미지 저장', 'Save image', '画像を保存', '保存图片'],
+  viewEdit: ['영역 편집', 'Edit area', 'エリア編集', '编辑区域'],
+  viewResult: ['완성 미리보기', 'Result preview', '完成プレビュー', '效果预览'],
+  image: ['이미지', 'Image', '画像', '图片'],
+  pickImage: ['이미지 선택', 'Choose image', '画像を選択', '选择图片'],
+  useSample: ['샘플 이미지 사용', 'Use sample image', 'サンプル画像を使う', '使用示例图片'],
+  imageHint: ['png · jpg · gif · webp 지원. 화면에 끌어다 놓거나 붙여넣기도 가능해요.', 'Supports png / jpg / gif / webp. You can also drop or paste onto the page.', 'png・jpg・gif・webp に対応。画面へのドラッグ＆ドロップや貼り付けもできます。', '支持 png / jpg / gif / webp，也可拖放或粘贴到页面。'],
+  imgInfo: ['{w}×{h}px', '{w}×{h}px', '{w}×{h}px', '{w}×{h}px'],
+  imgDown: [' (너무 커서 {m}px로 줄였어요)', ' (downscaled to {m}px)', '（大きいため{m}pxに縮小）', '（过大，已缩小至 {m}px）'],
+  imgFail: ['이미지를 읽을 수 없어요. png/jpg/gif/webp 파일인지 확인해 주세요.', 'Could not read the image. Please use a png/jpg/gif/webp file.', '画像を読み込めません。png/jpg/gif/webpか確認してください。', '无法读取图片，请确认是 png/jpg/gif/webp 文件。'],
+  area: ['비어진 조각', 'The missing piece', '空いたピース', '空出的拼图块'],
+  wLbl: ['너비', 'W', '幅', '宽'],
+  hLbl: ['높이', 'H', '高さ', '高'],
+  lock: ['정사각형으로 고정', 'Lock to square', '正方形に固定', '锁定为正方形'],
+  center: ['가운데로', 'Center', '中央へ', '居中'],
+  areaHint: ['\'영역 편집\' 화면에서 이미지 위를 드래그해 영역을 지정하세요. 모서리를 끌면 크기가, 안쪽을 끌면 위치가 바뀌어요. 이 영역의 크기대로 나머지 퍼즐틀이 만들어져요.',
+    'In "Edit area", drag on the image to set the area. Drag the handles to resize and the inside to move. The rest of the puzzle grid is built from this size.',
+    '「エリア編集」で画像上をドラッグして範囲を指定します。角をドラッグでサイズ、内側をドラッグで位置を変更。この大きさに合わせて残りのパズル枠が作られます。',
+    '在“编辑区域”中拖动图片选择区域，拖动控制点调整大小，拖动内部移动位置。其余拼图框会按此大小生成。'],
+  nudgeMove: ['이동', 'Move', '移動', '移动'],
+  nudgeSize: ['크기', 'Size', 'サイズ', '大小'],
+  multiBox: ['빈 조각 늘리기', 'Add empty pieces', '空きピースを増やす', '增加空缺块'],
+  copyText: ['메인 글귀를 모든 빈 조각에 복사', 'Copy main text to all empty pieces', 'メインの言葉を全ての空きピースにコピー', '将主块文字复制到所有空缺块'],
+  multiHint: ['\'영역 편집\' 화면에서 이미지의 빈 곳을 한 번 탭(클릭)하면 그 칸도 비워져요. 다시 탭하면 원래대로 돌아가요. 메인 조각을 움직이면 모든 칸이 함께 움직여요. 글귀는 하나라서, 글자 크기를 키우면 옆의 빈 조각 안에서도 같은 글자가 비쳐 보여요.',
+    'In "Edit area", tap (click) an empty spot on the image to empty that cell too. Tap again to restore it. Moving the main piece moves all cells together. There is a single text, so when you enlarge it the same letters show through the neighbouring empty pieces too.',
+    '「エリア編集」で画像の空いた場所をタップ（クリック）すると、そのマスも外れます。もう一度タップで元に戻ります。メインのピースを動かすと全部のマスが一緒に動きます。言葉は1つなので、文字を大きくすると隣の空きピースにも同じ文字が透けて見えます。',
+    '在“编辑区域”中点按图片空白处，该格也会被掏空；再次点按可恢复。移动主拼图块时所有格子一起移动。文字只有一份，放大文字后相邻的空缺块里也会透出同样的文字。'],
+  multiCount: ['메인 1 + 추가 {n}조각 (최대 {m})', 'Main 1 + {n} extra (max {m})', 'メイン1＋追加{n}個（最大{m}）', '主块 1 + 额外 {n} 块（最多 {m}）'],
+  clearExtra: ['추가 조각 해제', 'Clear extras', '追加を解除', '清除额外块'],
+  textBox: ['빈 칸에 글귀', 'Text in the gaps', '空きに文字', '空位文字'],
+  chipMain: ['메인', 'Main', 'メイン', '主块'],
+  txPlaceholder: ['빈 칸에 비쳐 보일 글귀를 적어 보세요', 'Write the text that shows through the gap', '空きに透けて見える言葉を書いてください', '写下透过空位显示的文字'],
+  txFont: ['글꼴', 'Font', 'フォント', '字体'],
+  ft_sans: ['고딕', 'Sans', 'ゴシック', '黑体'], ft_serif: ['명조', 'Serif', '明朝', '宋体'], ft_mono: ['고정폭', 'Mono', '等幅', '等宽'], ft_hand: ['손글씨풍', 'Handwritten', '手書き風', '手写风'],
+  txBold: ['굵게', 'Bold', '太字', '加粗'],
+  txColor: ['글자색', 'Color', '文字色', '文字颜色'],
+  txSize: ['글자 크기', 'Text size', '文字サイズ', '文字大小'],
+  viewText: ['글자 위치', 'Text position', '文字位置', '文字位置'],
+  txAnchor: ['빠른 배치', 'Quick place', 'クイック配置', '快速摆放'],
+  goTextView: ['✥ 화면에서 글자 끌어서 옮기기', '✥ Drag the text on the preview', '✥ 画面で文字をドラッグ', '✥ 在画面中拖动文字'],
+  txX: ['가로 위치', 'Horizontal', '横位置', '水平位置'],
+  txY: ['세로 위치', 'Vertical', '縦位置', '垂直位置'],
+  txReset: ['글자 위치 초기화', 'Reset text position', '文字位置をリセット', '重置文字位置'],
+  txHint: ['글귀는 하나이고, 메인 조각을 기준으로 놓여요. 글자 크기를 키우면 메인 칸을 넘어 옆의 빈 조각 안에서도 같은 글자가 비쳐 보여요(조각 바깥은 보이지 않아요). \'글자 위치\' 화면에서 글자를 끌어 옮기면 칸의 가운데·가장자리에서 분홍 안내선에 붙어요. 방향키로 1px씩(Shift는 10px씩)도 옮길 수 있어요.',
+    'There is a single text, laid out on the main piece. When you enlarge it, it spills past the main cell and shows through the neighbouring empty pieces too (nothing shows outside the pieces). Drag it in the "Text position" view — it snaps to the pink guides at the cell\'s center and edges. Arrow keys nudge by 1px (Shift: 10px).',
+    '言葉は1つで、メインのピースを基準に置かれます。文字を大きくするとメインのマスからはみ出し、隣の空きピースにも透けて見えます（ピースの外は見えません）。「文字位置」画面でドラッグすると、マスの中央・端でピンクのガイドに吸着します。矢印キーで1px（Shiftで10px）ずつ動かせます。',
+    '文字只有一份，以主拼图块为基准摆放。放大后会超出主格，并透出到相邻的空缺块里（拼图块之外不可见）。在“文字位置”中拖动，靠近格子中心和边缘时会吸附到粉色参考线。方向键每次移动 1px（Shift 为 10px）。'],
+  shape: ['퍼즐 모양', 'Puzzle shape', 'パズルの形', '拼图形状'],
+  sh_classic: ['클래식', 'Classic', 'クラシック', '经典'],
+  sh_round: ['동그라미', 'Round', 'まる', '圆形'],
+  sh_square: ['사각', 'Square', 'しかく', '方形'],
+  sh_dovetail: ['도브테일', 'Dovetail', 'あり継ぎ', '燕尾'],
+  tabSize: ['돌기 크기', 'Knob size', 'でっぱりの大きさ', '凸起大小'],
+  layout: ['돌기 방향', 'Knob direction', 'でっぱりの向き', '凸起方向'],
+  dirRand: ['랜덤', 'Random', 'ランダム', '随机'],
+  dirAlt: ['번갈아', 'Alternate', '交互', '交替'],
+  shuffle: ['🎲 방향 다시 섞기', '🎲 Reshuffle', '🎲 向きをシャッフル', '🎲 重新打乱'],
+  holeBox: ['비워진 조각 색', 'Missing piece color', '空いたピースの色', '缺失拼图颜色'],
+  holeColor: ['배경색', 'Color', '背景色', '背景色'],
+  transp: ['투명하게 비우기 (PNG)', 'Make it transparent (PNG)', '透明にくり抜く (PNG)', '镂空透明 (PNG)'],
+  inner: ['안쪽 그림자', 'Inner shadow', '内側の影', '内阴影'],
+  frameBox: ['퍼즐틀', 'Puzzle frame', 'パズル枠', '拼图框'],
+  showFrame: ['나머지 퍼즐틀 표시', 'Show the rest of the frame', '残りの枠を表示', '显示其余拼图框'],
+  lineColor: ['선 색', 'Line color', '線の色', '线条颜色'],
+  lineW: ['선 굵기', 'Thickness', '線の太さ', '线条粗细'],
+  lineA: ['선 진하기', 'Opacity', '線の濃さ', '线条浓度'],
+  bevel: ['입체감 (빛·그림자)', 'Emboss (light & shade)', '立体感 (光と影)', '立体感 (光影)'],
+  viewGif: ['완성된 GIF', 'Result GIF', '完成したGIF', '生成的 GIF'],
+  animBox: ['퍼즐 애니메이션', 'Puzzle animation', 'パズルアニメ', '拼图动画'],
+  animFrom: ['날아오는/날아가는 방향', 'Fly direction', '飛ぶ方向', '飞行方向'],
+  animMode: ['동작', 'Action', '動き', '动作'],
+  modeIn: ['맞추기', 'Fit in', 'はめる', '拼入'], modeOut: ['빼가기', 'Take out', '外す', '取出'],
+  fromTop: ['위', 'Top', '上', '上'], fromBottom: ['아래', 'Bottom', '下', '下'], fromLeft: ['왼쪽', 'Left', '左', '左'], fromRight: ['오른쪽', 'Right', '右', '右'], fromDiag: ['대각선', 'Diagonal', '斜め', '对角'],
+  animSpin: ['기울어진 채로 날아오기', 'Fly in tilted', '傾いたまま飛んでくる', '倾斜着飞入'],
+  animHint: ['맞추기: 조각이 빈 칸에 들어가요. 빼가기: 채워진 조각이 빠져나가요.', 'Fit in: the piece drops into the gap. Take out: the filled piece flies away.', 'はめる：ピースが空きに入ります。外す：はまったピースが抜けていきます。', '拼入：拼图块嵌入空位。取出：已嵌入的拼图块飞走。'],
+  save: ['저장', 'Save', '保存', '保存'],
+  fmt: ['형식', 'Format', '形式', '格式'],
+  saveInfo: ['저장 크기: {w}×{h}px', 'Output size: {w}×{h}px', '保存サイズ: {w}×{h}px', '保存尺寸: {w}×{h}px'],
+  license: ['만든 이미지는 자유롭게 사용 가능합니다.', 'The images you make are free to use.', '作成した画像は自由に使用できます。', '制作的图片可自由使用。']
+};
+let lang = (() => {
+  try { const v = localStorage.getItem('pom-lang'); if (LANGS.includes(v)) return v; } catch (e) {}
+  const n = (navigator.language || 'ko').slice(0, 2); return LANGS.includes(n) ? n : 'ko';
+})();
+const L = () => LANGS.indexOf(lang);
+const t = (k, vars) => {
+  const e = S[k]; let s = e ? (e[L()] || e[1]) : k;
+  if (vars) for (const v in vars) s = s.replace('{' + v + '}', vars[v]);
+  return s;
+};
+
+/* ============================== utils ============================== */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const MAXDIM = 4096;
+
+/* ============================== puzzle tab shapes ==============================
+   Each returns points [du, v] in units of the piece size m, du = offset from the
+   edge center, v = height above the edge. Points run left -> right. */
+function arcPts(cx, cy, r, a0, a1, n) {
+  const o = [];
+  for (let k = 0; k <= n; k++) { const a = a0 + (a1 - a0) * k / n; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return o;
+}
+function quadPts(p0, c, p1, n) {
+  const o = [];
+  for (let k = 0; k <= n; k++) {
+    const s = k / n, u = 1 - s;
+    o.push([u * u * p0[0] + 2 * u * s * c[0] + s * s * p1[0], u * u * p0[1] + 2 * u * s * c[1] + s * s * p1[1]]);
+  }
+  return o;
+}
+function bulb(H, rr, nn, fl) {
+  const r = H * rr, c = H - r, n = r * nn, q = Math.sqrt(r * r - n * n), yj = c - q, g = Math.atan2(q, n);
+  const e = Math.min(yj * 0.6, fl), pts = [];
+  if (fl > 0) pts.push(...quadPts([-n - fl, 0], [-n, 0], [-n, e], 6)); else pts.push([-n, 0]);
+  pts.push([-n, yj]);
+  pts.push(...arcPts(0, c, r, Math.PI + g, -g, 32));
+  pts.push([n, yj]);
+  if (fl > 0) pts.push(...quadPts([n, e], [n, 0], [n + fl, 0], 6)); else pts.push([n, 0]);
+  return pts;
+}
+const TABS = {
+  classic: H => bulb(H, 0.4, 0.55, 0.07),
+  round: H => bulb(H, 0.5, 0.45, 0.035),
+  square: H => { const w = H * 0.6; return [[-w, 0], [-w, H], [w, H], [w, 0]]; },
+  dovetail: H => { const w = H * 0.72, n = w * 0.42; return [[-n, 0], [-w, H], [w, H], [n, 0]]; }
+};
+const SHAPES = Object.keys(TABS);
+
+/* edge template: polyline from (0,0) to (len,0), bulging toward +v, in pixels */
+function edgeTemplate(shape, len, m, H) {
+  const pts = [[0, 0]];
+  for (const [du, v] of TABS[shape](H)) pts.push([len / 2 + du * m, v * m]);
+  pts.push([len, 0]);
+  return pts;
+}
+/* place a template as a horizontal (kind 0, bulge s = +1 down) or vertical (kind 1, bulge s = +1 right) edge */
+function placeEdge(T, kind, X, Y, s) {
+  return kind ? T.map(p => [X + s * p[1], Y + p[0]]) : T.map(p => [X + p[0], Y + s * p[1]]);
+}
+
+/* ============================== state ============================== */
+const st = {
+  shape: 'classic', tab: 0.26, dirMode: 'rand', seed: 1,
+  holeColor: '#14171a', transp: false, inner: true,
+  showFrame: true, lineColor: '#ffffff', lineW: 3, lineA: 0.85, bevel: true,
+  fmt: 'png', lock: true, view: 'edit',
+  extra: [],                 // extra emptied cells, "i,j" relative to the main piece "0,0"
+  texts: {},                 // text per emptied cell
+  active: '0,0',             // cell whose text is being edited
+  tx: { font: 'pretendard', bold: false, color: '#ffffff', size: 100 },
+  tpos: {}                   // text offset per cell, in units of the piece size
+};
+const MAX_EXTRA = 11;
+/* text fonts: [key, label, css family] per language group (loaded from Google Fonts / Pretendard CDN) */
+const FONT_GROUPS = [
+  ['한글', [['pretendard', '프리텐다드 · 고딕', '"Pretendard Variable", Pretendard'], ['gowunbatang', '고운바탕 · 명조', '"Gowun Batang"']]],
+  ['English', [['inter', 'Inter · Sans', '"Inter"'], ['playfair', 'Playfair Display · Serif', '"Playfair Display"']]],
+  ['日本語', [['notojp', 'Noto Sans JP · ゴシック', '"Noto Sans JP"'], ['shippori', 'Shippori Mincho · 明朝', '"Shippori Mincho"']]],
+  ['中文', [['notosc', 'Noto Sans SC · 黑体', '"Noto Sans SC"'], ['notoserifsc', 'Noto Serif SC · 宋体', '"Noto Serif SC"']]]
+];
+const FALLBACK_FONT = ', "Malgun Gothic", "Yu Gothic UI", "Microsoft YaHei UI", system-ui, sans-serif';
+const FONTS = {};
+FONT_GROUPS.forEach(g => g[1].forEach(f => { FONTS[f[0]] = f[2] + FALLBACK_FONT; }));
+const fontReq = new Set();
+function needFont(fk, txt) {        // canvas can't wait for web fonts: request them and repaint when ready
+  try { if (document.fonts.check(fk, txt)) return; } catch (e) { return; }
+  const id = fk + '|' + txt; if (fontReq.has(id)) return; fontReq.add(id);
+  document.fonts.load(fk, txt).then(() => { animCache = null; redraw(); }).catch(() => {});
+}
+const TXI = {};                       // last laid-out text block per cell (image px): for dragging / snapping / anchors
+const cellBox = I => { const c = I.cell, p = I.m * 0.07; return { x: c.x + p, y: c.y + p, w: c.w - 2 * p, h: c.h - 2 * p }; };   // the plain square cell, knobs ignored
+let img = null, iw = 0, ih = 0;
+let sel = { x: 0, y: 0, w: 100, h: 100 };
+const minSize = () => Math.max(16, Math.round(Math.max(iw, ih) / 80));
+
+function dirOf(kind, i, j) {
+  if (st.dirMode === 'alt') return kind === 0 ? (((i + j) & 1) ? 1 : -1) : (((i + j + 1) & 1) ? 1 : -1);
+  let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(kind + 1, 1597334677) + Math.imul(st.seed, 1274126177)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h & 1) ? 1 : -1;
+}
+
+/* ============================== render ============================== */
+function addPts(p, pts, cont) {
+  pts.forEach((q, k) => { if (k === 0 && !cont) p.moveTo(q[0], q[1]); else p.lineTo(q[0], q[1]); });
+}
+/* grid geometry anchored on the main piece (selection); every emptied cell gets its outline + a text-safe body rect */
+function geometry() {
+  const cw = sel.w, ch = sel.h, m = Math.min(cw, ch);
+  const TH = edgeTemplate(st.shape, cw, m, st.tab), TV = edgeTemplate(st.shape, ch, m, st.tab);
+  const edge = (kind, i, j) => placeEdge(kind ? TV : TH, kind, sel.x + i * cw, sel.y + j * ch, dirOf(kind, i, j));
+  const tabH = st.tab * m, pad = m * 0.07;
+  const holes = ['0,0', ...st.extra].map(key => {
+    const [i, j] = key.split(',').map(Number);
+    const path = new Path2D();
+    addPts(path, edge(0, i, j), false);
+    addPts(path, edge(1, i + 1, j), true);
+    addPts(path, edge(0, i, j + 1).reverse(), true);
+    addPts(path, edge(1, i, j).reverse(), true);
+    path.closePath();
+    // neighbours' knobs that bite into this cell shrink the text-safe area on that side
+    const iT = (dirOf(0, i, j) > 0 ? tabH : 0) + pad, iB = (dirOf(0, i, j + 1) < 0 ? tabH : 0) + pad;
+    const iL = (dirOf(1, i, j) > 0 ? tabH : 0) + pad, iR = (dirOf(1, i + 1, j) < 0 ? tabH : 0) + pad;
+    const x0 = sel.x + i * cw, y0 = sel.y + j * ch;
+    return { key, i, j, path, cell: { x: x0, y: y0, w: cw, h: ch }, body: { x: x0 + iL, y: y0 + iT, w: cw - iL - iR, h: ch - iT - iB } };
+  });
+  const hole = new Path2D();
+  for (const H of holes) hole.addPath(H.path);
+  return { cw, ch, m, edge, holes, hole };
+}
+
+/* word-wrap (and break over-long words by character, so CJK text without spaces works too) */
+function wrapText(ctx, text, maxW) {
+  const out = [];
+  for (const para of text.split('\n')) {
+    if (para === '') { out.push(''); continue; }
+    let line = '';
+    const push = () => { out.push(line.replace(/\s+$/, '')); line = ''; };
+    for (const tk of para.match(/\S+\s*|\s+/g) || []) {
+      if (ctx.measureText((line + tk).replace(/\s+$/, '')).width <= maxW) { line += tk; continue; }
+      if (line !== '') push();
+      if (ctx.measureText(tk.replace(/\s+$/, '')).width <= maxW) { line = tk; continue; }
+      for (const ch of Array.from(tk)) { if (line !== '' && ctx.measureText(line + ch).width > maxW) push(); line += ch; }
+    }
+    push();
+  }
+  return out;
+}
+function drawHoleText(ctx, H, m, clipPath) {
+  const txt = (st.texts[H.key] || '').trim(), b = H.body;
+  if (!txt || b.w < 6 || b.h < 6) { delete TXI[H.key]; return; }
+  const fam = FONTS[st.tx.font] || FONTS.pretendard, wt = st.tx.bold ? '700' : '500', LH = 1.3;
+  needFont(wt + ' 20px ' + fam, txt);
+  const setF = px => { ctx.font = wt + ' ' + px + 'px ' + fam; };
+  const widest = lines => Math.max(...lines.map(l => ctx.measureText(l).width));
+  const CAP = m * 0.2, MIN_ONE_LINE = m * 0.045;
+  // 1) keep it on one line per paragraph whenever that stays readable (short text must not wrap)
+  const paras = txt.split('\n');
+  let px = 0, lo = 3, hi = CAP;
+  for (let it = 0; it < 16; it++) {
+    const mid = (lo + hi) / 2; setF(mid);
+    if (paras.length * mid * LH <= b.h && widest(paras) <= b.w + 0.5) { px = mid; lo = mid; } else hi = mid;
+  }
+  let lines = paras;
+  if (px < MIN_ONE_LINE) {
+    // 2) too long for one line: wrap, with the largest size that still fits the piece
+    px = 3; lo = 3; hi = Math.min(CAP, Math.max(6, b.h * 0.8));
+    for (let it = 0; it < 16; it++) {
+      const mid = (lo + hi) / 2; setF(mid);
+      const ls = wrapText(ctx, txt, b.w);
+      if (ls.length * mid * LH <= b.h && widest(ls) <= b.w + 0.5) { px = mid; lo = mid; } else hi = mid;
+    }
+    setF(px); lines = wrapText(ctx, txt, b.w);
+  }
+  px *= st.tx.size / 100;                       // the size slider zooms this layout (line breaks stay put)
+  setF(px);
+  const lh = px * LH, blockH = lines.length * lh, blockW = widest(lines), top0 = b.y + (b.h - blockH) / 2;
+  const off = st.tpos[H.key] || { x: 0, y: 0 }, ox = off.x * m, oy = off.y * m, x = b.x + ox;
+  TXI[H.key] = { x, y: top0 + oy, w: blockW, h: blockH, top0, b, m, cell: H.cell };
+  ctx.save();
+  ctx.clip(clipPath || H.path);
+  ctx.fillStyle = st.tx.color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  lines.forEach((l, k) => ctx.fillText(l, x, top0 + oy + lh / 2 + k * lh));
+  ctx.restore();
+}
+
+function render(ctx, sc, opts) {
+  opts = opts || {};
+  const cvs = ctx.canvas;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  if (opts.bg) { ctx.fillStyle = opts.bg; ctx.fillRect(0, 0, cvs.width, cvs.height); }
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, iw, ih);
+
+  const geo = geometry(), { cw, ch, m, edge, holes, hole } = geo;
+
+  const transp = st.transp && !opts.opaque;
+  if (transp) {
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000'; ctx.fill(hole);
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.fillStyle = st.holeColor; ctx.fill(hole);
+    if (st.inner) {
+      ctx.save(); ctx.clip(hole);
+      ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+      for (const [w, a] of [[0.12, 0.07], [0.085, 0.09], [0.055, 0.12], [0.03, 0.16], [0.012, 0.22]]) {
+        ctx.globalAlpha = a; ctx.lineWidth = m * w; ctx.stroke(hole);
+      }
+      ctx.restore();
+    }
+  }
+  drawHoleText(ctx, holes[0], m, hole);          // one text, laid out on the main piece, visible through every empty piece
+
+  /* the rest of the frame */
+  const lw = Math.max(m * st.lineW * 0.0035, 0.6 / sc);
+  const frame = new Path2D();
+  if (st.showFrame) {
+    const i0 = Math.floor((0 - sel.x) / cw) - 1, i1 = Math.ceil((iw - sel.x) / cw) + 1;
+    const j0 = Math.floor((0 - sel.y) / ch) - 1, j1 = Math.ceil((ih - sel.y) / ch) + 1;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      addPts(frame, edge(0, i, j), false);
+      addPts(frame, edge(1, i, j), false);
+    }
+  } else {
+    frame.addPath(hole);
+  }
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = lw;
+  if (st.bevel) {
+    const o = lw * 0.75;
+    ctx.save();
+    ctx.globalAlpha = 0.45 * st.lineA; ctx.strokeStyle = '#000'; ctx.translate(o, o); ctx.stroke(frame);
+    ctx.globalAlpha = 0.5 * st.lineA; ctx.strokeStyle = '#fff'; ctx.translate(-2 * o, -2 * o); ctx.stroke(frame);
+    ctx.restore();
+  }
+  ctx.globalAlpha = st.lineA; ctx.strokeStyle = st.lineColor; ctx.stroke(frame);
+  ctx.globalAlpha = 1;
+  return { hole, holes, m, lw };
+}
+
+/* ============================== layout & preview ============================== */
+const cv = $('cv'), wrap = $('wrap'), selEl = $('sel'), viewEl = $('view');
+let kScale = 1;     // css px per image px
+let raf = 0;
+
+function layout() {
+  if (!img) return;
+  const mob = window.matchMedia('(max-width: 860px)').matches;
+  if (mob) viewEl.style.height = Math.round(Math.max(150, Math.min(window.innerHeight * 0.4, viewEl.getBoundingClientRect().width * ih / iw))) + 'px'; else viewEl.style.height = '';
+  const vb = viewEl.getBoundingClientRect();
+  const aw = Math.max(vb.width, 80), ah = Math.max(vb.height, 80);
+  kScale = Math.min(aw / iw, ah / ih, 2);
+  const cssW = Math.max(1, Math.round(iw * kScale)), cssH = Math.max(1, Math.round(ih * kScale));
+  wrap.style.width = cssW + 'px'; wrap.style.height = cssH + 'px';
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const ps = Math.min(cssW * dpr / iw, MAXDIM / iw);
+  const pw = Math.max(1, Math.round(iw * ps)), ph = Math.max(1, Math.round(ih * ps));
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+  draw();
+}
+function draw() {
+  if (!img) return;
+  const ps = cv.width / iw;
+  render(cv.getContext('2d'), ps);
+  placeSel();
+}
+const redraw = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+const tboxes = document.createElement('div'); tboxes.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+const gV = document.createElement('div'); gV.className = 'tguide v'; gV.hidden = true;
+const gH = document.createElement('div'); gH.className = 'tguide h'; gH.hidden = true;
+wrap.append(tboxes, gV, gH);
+function placeText() {
+  const on = st.view === 'text';
+  tboxes.hidden = !on; if (!on) { gV.hidden = gH.hidden = true; return; }
+  const keys = ['0,0', ...st.extra];
+  tboxes.innerHTML = keys.map((k, n) => {
+    const i = TXI[k]; if (!i) return '';
+    const pad = 4;
+    return '<div class="tbox on" style="left:' + (i.x * kScale - pad) + 'px;top:' + (i.y * kScale - pad) + 'px;width:' + (i.w * kScale + pad * 2) + 'px;height:' + (i.h * kScale + pad * 2) + 'px"></div>';
+  }).join('');
+}
+function placeSel() {
+  const on = st.view === 'edit';
+  selEl.hidden = !on;
+  wrap.classList.toggle('edit', on); wrap.classList.toggle('textdrag', st.view === 'text');
+  placeText();
+  if (!on) return;
+  selEl.classList.toggle('small', sel.w * kScale < 90 || sel.h * kScale < 90);
+  selEl.style.left = sel.x * kScale + 'px'; selEl.style.top = sel.y * kScale + 'px';
+  selEl.style.width = sel.w * kScale + 'px'; selEl.style.height = sel.h * kScale + 'px';
+}
+function syncInputs() {
+  $('nx').value = Math.round(sel.x); $('ny').value = Math.round(sel.y);
+  $('nw').value = Math.round(sel.w); $('nh').value = Math.round(sel.h);
+  $('saveInfo').textContent = t('saveInfo', { w: iw, h: ih });
+}
+function setSel(r, quiet) {
+  const mn = minSize();
+  let w = clamp(r.w, mn, iw), h = clamp(r.h, mn, ih);
+  if (st.lock) { const s = Math.min(w, h); w = h = s; }
+  sel = { x: clamp(r.x, 0, iw - w), y: clamp(r.y, 0, ih - h), w, h };
+  if (!quiet) syncInputs();
+  redraw();
+}
+
+/* ============================== selection dragging ============================== */
+let drag = null;
+const toImg = e => {
+  const r = wrap.getBoundingClientRect();
+  return { x: clamp((e.clientX - r.left) / kScale, 0, iw), y: clamp((e.clientY - r.top) / kScale, 0, ih) };
+};
+wrap.addEventListener('pointerdown', e => {
+  if (img && st.view === 'text' && e.button <= 0) {         // "text position" view: drag the text from anywhere (it snaps to the main piece's guides)
+    if (!TXI['0,0']) return;
+    const o = tpos('0,0');
+    drag = { mode: 'text', key: '0,0', s: toImg(e), o: { x: o.x, y: o.y } };
+    try { wrap.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); return;
+  }
+  if (!img || st.view !== 'edit' || e.button > 0) return;
+  const p = toImg(e), h = e.target.dataset && e.target.dataset.h;
+  if (h) drag = { mode: 'resize', h, o: { l: sel.x, t: sel.y, r: sel.x + sel.w, b: sel.y + sel.h } };
+  else if (e.target === selEl) drag = { mode: 'move', s: p, o: { ...sel } };
+  else drag = { mode: 'new', s: p, prev: { ...sel } };
+  try { wrap.setPointerCapture(e.pointerId); } catch (x) {}
+  e.preventDefault();
+});
+wrap.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (drag.mode === 'text') {
+    const p = toImg(e), o = tpos(drag.key), I = TXI[drag.key]; if (!I) return;
+    const m = I.m, thr = 7 / kScale, B = cellBox(I), bx0 = I.b.x;
+    let ox = drag.o.x + (p.x - drag.s.x) / m, oy = drag.o.y + (p.y - drag.s.y) / m, gx_ = null, gy_ = null;
+    const left = bx0 + ox * m, top = I.top0 + oy * m;
+    for (const [c, line] of [[B.x, B.x], [B.x + (B.w - I.w) / 2, B.x + B.w / 2], [B.x + B.w - I.w, B.x + B.w]])
+      if (Math.abs(left - c) < thr) { ox = (c - bx0) / m; gx_ = line; break; }
+    for (const [c, line] of [[B.y, B.y], [B.y + (B.h - I.h) / 2, B.y + B.h / 2], [B.y + B.h - I.h, B.y + B.h]])
+      if (Math.abs(top - c) < thr) { oy = (c - I.top0) / m; gy_ = line; break; }
+    o.x = clamp(ox, -1, 1); o.y = clamp(oy, -1, 1);
+    gV.hidden = gx_ === null; if (gx_ !== null) gV.style.left = gx_ * kScale + 'px';
+    gH.hidden = gy_ === null; if (gy_ !== null) gH.style.top = gy_ * kScale + 'px';
+    syncPos(); redraw(); return;
+  }
+  const p = toImg(e), mn = minSize();
+  if (drag.mode === 'move') {
+    setSel({ x: drag.o.x + p.x - drag.s.x, y: drag.o.y + p.y - drag.s.y, w: sel.w, h: sel.h });
+  } else if (drag.mode === 'new') {
+    const sx = drag.s.x, sy = drag.s.y, rx = p.x >= sx ? 1 : -1, ry = p.y >= sy ? 1 : -1;
+    let w = Math.abs(p.x - sx), h = Math.abs(p.y - sy);
+    if (st.lock) {
+      const s = Math.min(Math.max(w, h), rx > 0 ? iw - sx : sx, ry > 0 ? ih - sy : sy);
+      w = h = s;
+    }
+    if (!drag.moved) {                                    // a tap, not a drag: wait for real movement
+      if (Math.hypot(p.x - sx, p.y - sy) * kScale < 8) return;
+      drag.moved = true;
+    }
+    sel = { x: rx > 0 ? sx : sx - w, y: ry > 0 ? sy : sy - h, w, h };
+    syncInputs(); redraw();
+  } else {
+    let { l, t, r, b } = drag.o; const hh = drag.h;
+    if (hh.includes('w')) l = Math.min(p.x, r - mn);
+    if (hh.includes('e')) r = Math.max(p.x, l + mn);
+    if (hh.includes('n')) t = Math.min(p.y, b - mn);
+    if (hh.includes('s')) b = Math.max(p.y, t + mn);
+    if (st.lock) {
+      const w = r - l, h = b - t, o = drag.o;
+      if (hh.length === 2) {
+        const s = Math.min(Math.max(w, h), hh.includes('w') ? o.r : iw - o.l, hh.includes('n') ? o.b : ih - o.t);
+        if (hh.includes('w')) l = o.r - s; else r = o.l + s;
+        if (hh.includes('n')) t = o.b - s; else b = o.t + s;
+      } else if (hh === 'e' || hh === 'w') {
+        const cy = (o.t + o.b) / 2, s = Math.min(w, 2 * cy, 2 * (ih - cy));
+        if (hh === 'w') l = o.r - s; else r = o.l + s;
+        t = cy - s / 2; b = cy + s / 2;
+      } else {
+        const cx = (o.l + o.r) / 2, s = Math.min(h, 2 * cx, 2 * (iw - cx));
+        if (hh === 'n') t = o.b - s; else b = o.t + s;
+        l = cx - s / 2; r = cx + s / 2;
+      }
+    }
+    sel = { x: l, y: t, w: r - l, h: b - t }; syncInputs(); redraw();
+  }
+});
+const endDrag = () => {
+  if (!drag) return;
+  if (drag.mode === 'new') {
+    if (!drag.moved) toggleCell(drag.s);                  // tap on an empty spot -> empty that cell too
+    if (!drag.moved || sel.w < minSize() || sel.h < minSize()) sel = drag.prev;
+  }
+  gV.hidden = gH.hidden = true;
+  drag = null; syncInputs(); redraw();
+};
+wrap.addEventListener('pointerup', endDrag);
+wrap.addEventListener('pointercancel', endDrag);
+
+/* extra emptied cells */
+function toggleCell(p) {
+  const i = Math.floor((p.x - sel.x) / sel.w), j = Math.floor((p.y - sel.y) / sel.h), key = i + ',' + j;
+  if (key === '0,0') return;
+  const k = st.extra.indexOf(key);
+  if (k >= 0) st.extra.splice(k, 1);
+  else if (st.extra.length < MAX_EXTRA) st.extra.push(key);
+  else return;
+  renderChips();
+}
+$('clearExtra').addEventListener('click', () => { st.extra = []; st.active = '0,0'; renderChips(); redraw(); });
+
+/* nudge pad (touch friendly, hold to repeat) */
+function nudge(n) {
+  const s = Math.max(1, Math.round(Math.max(iw, ih) / 200));
+  let { x, y, w, h } = sel;
+  if (n === 'l') x -= s; else if (n === 'r') x += s; else if (n === 'u') y -= s; else if (n === 'd') y += s;
+  else if (n === 'grow') { x -= s; y -= s; w += 2 * s; h += 2 * s; }
+  else if (n === 'shrink') { x += s; y += s; w -= 2 * s; h -= 2 * s; }
+  setSel({ x, y, w, h });
+}
+let nudgeT = 0, nudgeI = 0;
+const nudgeStop = () => { clearTimeout(nudgeT); clearInterval(nudgeI); };
+$('nudge').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b || !img) return;
+  e.preventDefault(); nudgeStop(); nudge(b.dataset.n);
+  nudgeT = setTimeout(() => { nudgeI = setInterval(() => nudge(b.dataset.n), 60); }, 380);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(n => $('nudge').addEventListener(n, nudgeStop));
+
+/* numeric inputs */
+for (const id of ['nx', 'ny', 'nw', 'nh']) {
+  $(id).addEventListener('change', () => {
+    const v = k => Number($(k).value) || 0;
+    let w = v('nw'), h = v('nh');
+    if (st.lock) { if (id === 'nh') w = h; else h = w; }
+    setSel({ x: v('nx'), y: v('ny'), w, h });
+  });
+}
+$('lock').addEventListener('change', e => { st.lock = e.target.checked; if (st.lock) setSel({ ...sel }); });
+$('centerBtn').addEventListener('click', () => setSel({ x: (iw - sel.w) / 2, y: (ih - sel.h) / 2, w: sel.w, h: sel.h }));
+
+/* ============================== image loading ============================== */
+function setImage(source, w, h, note) {
+  const sc = Math.min(1, MAXDIM / Math.max(w, h));
+  const nw = Math.max(1, Math.round(w * sc)), nh = Math.max(1, Math.round(h * sc));
+  const c = mkCanvas(nw, nh);
+  c.getContext('2d').drawImage(source, 0, 0, nw, nh);
+  img = c; iw = nw; ih = nh;
+  let info = t('imgInfo', { w: iw, h: ih });
+  if (sc < 1) info += t('imgDown', { m: MAXDIM });
+  $('imgInfo').textContent = info;
+  const s = Math.round(Math.min(iw, ih) * 0.24);
+  st.lock = true; $('lock').checked = true;
+  sel = { x: Math.round((iw - s) / 2), y: Math.round((ih - s) / 2), w: s, h: s };
+  syncInputs();
+  layout();
+  if (gx) gx.refresh();
+}
+function loadFile(f) {
+  if (!f || !/^image\//.test(f.type)) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => { setImage(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(url); };
+  im.onerror = () => { URL.revokeObjectURL(url); alert(t('imgFail')); };
+  im.src = url;
+}
+function makeSample() {
+  const W = 1200, H = 800, c = mkCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#9aa0a6'; g.fillRect(0, 0, W, H);
+  setImage(c, W, H);
+}
+$('pickBtn').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
+$('sampleBtn').addEventListener('click', makeSample);
+const stage = $('stage');
+['dragenter', 'dragover'].forEach(n => stage.addEventListener(n, e => { e.preventDefault(); stage.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(n => stage.addEventListener(n, e => { e.preventDefault(); stage.classList.remove('drag'); }));
+stage.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+document.addEventListener('paste', e => {
+  for (const it of (e.clipboardData && e.clipboardData.items) || []) if (it.type.startsWith('image/')) { loadFile(it.getAsFile()); break; }
+});
+
+/* ============================== controls ============================== */
+function shapeIcon(shape) {
+  const m = 24, T = edgeTemplate(shape, m, m, 0.3), X = 12, Y = 12;
+  const pts = [
+    ...placeEdge(T, 0, X, Y, -1),
+    ...placeEdge(T, 1, X + m, Y, 1),
+    ...placeEdge(T, 0, X, Y + m, -1).reverse(),
+    ...placeEdge(T, 1, X, Y, 1).reverse()
+  ];
+  return '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M' + pts.map(p => p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join('L') + 'Z"/></svg>';
+}
+function buildShapes() {
+  $('shapeGrid').innerHTML = SHAPES.map(s =>
+    '<button type="button" class="shape" data-shape="' + s + '">' + shapeIcon(s) + '<span data-i18n="sh_' + s + '"></span></button>').join('');
+}
+function activate(group, v) { group.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.v === v)); }
+$('shapeGrid').addEventListener('click', e => {
+  const b = e.target.closest('.shape'); if (!b) return;
+  st.shape = b.dataset.shape; markShape(); redraw();
+});
+function markShape() { $('shapeGrid').querySelectorAll('.shape').forEach(b => b.classList.toggle('active', b.dataset.shape === st.shape)); }
+$('tabSize').addEventListener('input', e => { st.tab = e.target.value / 100; $('tabSizeVal').textContent = e.target.value + '%'; redraw(); });
+$('dirGroup').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  st.dirMode = b.dataset.v; activate($('dirGroup'), st.dirMode); $('shuffleBtn').disabled = st.dirMode !== 'rand'; redraw();
+});
+$('shuffleBtn').addEventListener('click', () => { st.seed = (st.seed * 48271 + 11) % 2147483647; redraw(); });
+
+const SWATCHES = ['#14171a', '#ffffff', '#f3ead6', '#8a8f98', '#14b8a6', '#f4a6b7', '#e0b3ff'];
+$('holeSw').innerHTML = SWATCHES.map(c => '<button type="button" style="background:' + c + '" data-c="' + c + '" aria-label="' + c + '"></button>').join('');
+$('holeSw').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  st.holeColor = b.dataset.c; $('holeColor').value = st.holeColor; redraw();
+});
+$('holeColor').addEventListener('input', e => { st.holeColor = e.target.value; redraw(); });
+$('transp').addEventListener('change', e => { st.transp = e.target.checked; redraw(); });
+$('inner').addEventListener('change', e => { st.inner = e.target.checked; redraw(); });
+$('showFrame').addEventListener('change', e => { st.showFrame = e.target.checked; redraw(); });
+$('lineColor').addEventListener('input', e => { st.lineColor = e.target.value; redraw(); });
+$('lineW').addEventListener('input', e => { st.lineW = +e.target.value; $('lineWVal').textContent = e.target.value; redraw(); });
+$('lineA').addEventListener('input', e => { st.lineA = e.target.value / 100; $('lineAVal').textContent = e.target.value + '%'; redraw(); });
+$('bevel').addEventListener('change', e => { st.bevel = e.target.checked; redraw(); });
+$('fmtGroup').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  st.fmt = b.dataset.v; activate($('fmtGroup'), st.fmt);
+});
+$('viewTabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.disabled) return;
+  setView(b.dataset.view);
+});
+
+/* ============================== save ============================== */
+async function download() {
+  if (!img) return;
+  try {                                                    // make sure the chosen web font is ready before the final render
+    const fk = (st.tx.bold ? "700" : "500") + " 20px " + FONTS[st.tx.font];
+    await Promise.all(Object.values(st.texts).filter(Boolean).map(tx => document.fonts.load(fk, tx)));
+  } catch (e) {}
+  const jpg = st.fmt === 'jpg';
+  const c = mkCanvas(iw, ih);
+  render(c.getContext('2d'), 1, jpg ? { bg: '#ffffff', opaque: true } : {});
+  c.toBlob(b => {
+    if (!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = 'piece-of-memory.' + (jpg ? 'jpg' : 'png');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, jpg ? 'image/jpeg' : 'image/png', 0.95);
+}
+$('dlBtn').addEventListener('click', download);
+$('dlTop').addEventListener('click', download);
+
+/* ============================== language ============================== */
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('langTabs').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  const bs = document.querySelector('.brand > span'); if (bs) bs.childNodes[0].nodeValue = t('madeBy') + ' ';
+  $('tagline').textContent = t('tagline');
+  if (typeof renderChips === 'function' && $('holeChips')) renderChips();
+  if (gx) gx.refresh();
+  const d = document.querySelector('meta[name=description]'); if (d) d.content = t('tagline');
+  if (img) { let info = t('imgInfo', { w: iw, h: ih }); $('imgInfo').textContent = info; syncInputs(); }
+}
+$('langTabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  lang = b.dataset.lang; try { localStorage.setItem('pom-lang', lang); } catch (x) {}
+  applyLang();
+});
+
+/* ============================== puzzle-fit animation (gif-export) ============================== */
+const anim = { from: 'top', spin: true, mode: 'in' };
+let animCache = null, gifUrl = null;
+const clamp01 = v => clamp(v, 0, 1);
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+
+function animAssets(w, h) {
+  const key = JSON.stringify([w, h, sel, st.shape, st.tab, st.dirMode, st.seed, st.holeColor, st.inner, st.showFrame, st.lineColor, st.lineW, st.lineA, st.bevel, st.extra, st.texts, st.tx, st.tpos, iw, ih]);
+  if (animCache && animCache.key === key) return animCache;
+  const sc = w / iw;
+  const base = mkCanvas(w, h), geo = render(base.getContext('2d'), sc, { opaque: true });
+  const pad = geo.m * (st.tab + 0.12) + geo.lw * 2;
+  const pieces = geo.holes.map(H => {
+    const bx = H.cell.x - pad, by = H.cell.y - pad, bw = H.cell.w + 2 * pad, bh = H.cell.h + 2 * pad;
+    const c = mkCanvas(Math.max(1, Math.ceil(bw * sc)), Math.max(1, Math.ceil(bh * sc))), g = c.getContext('2d');
+    g.setTransform(sc, 0, 0, sc, -bx * sc, -by * sc);
+    g.save(); g.clip(H.path); g.drawImage(img, 0, 0, iw, ih); g.restore();
+    g.lineJoin = 'round'; g.lineWidth = geo.lw; g.globalAlpha = st.lineA; g.strokeStyle = st.lineColor; g.stroke(H.path);
+    return { canvas: c, bx: bx * sc, by: by * sc, cx: (H.cell.x + H.cell.w / 2) * sc, cy: (H.cell.y + H.cell.h / 2) * sc };
+  });
+  animCache = { key, base, pieces, m: geo.m * sc };
+  return animCache;
+}
+function animFrame(ctx, w, h, p) {
+  const A = animAssets(w, h);
+  ctx.drawImage(A.base, 0, 0);
+  const T0 = 0.12, T1 = 0.7, K = A.pieces.length;
+  const stag = K > 1 ? Math.min(0.07, (T1 - T0) * 0.5 / (K - 1)) : 0, D = (T1 - T0) - stag * (K - 1);
+  A.pieces.forEach((P, k) => {
+    const s = T0 + k * stag;
+    const q = clamp01((p - s) / D), r = 1 - easeOut(q);                // 1 = far away, 0 = landed
+    const far = A.m * 1.8;
+    let dx = 0, dy = 0;
+    if (anim.from === 'top') dy = -(P.cy + far);
+    else if (anim.from === 'bottom') dy = h - P.cy + far;
+    else if (anim.from === 'left') dx = -(P.cx + far);
+    else if (anim.from === 'right') dx = w - P.cx + far;
+    else { dx = -(P.cx + far); dy = -(P.cy + far); }
+    const u = clamp01((p - (s + D)) / 0.1);
+    const land = Math.sin(u * Math.PI) * (1 - u) * 0.05;               // small settle bounce after landing
+    const rot = ((anim.spin ? -0.6 : 0) * r + 0.05 * Math.sin(q * 9) * r) * (k % 2 ? -1 : 1);
+    const sc = 1 + 0.2 * r + land;
+    ctx.save();
+    ctx.translate(P.cx + dx * r, P.cy + dy * r); ctx.rotate(rot); ctx.scale(sc, sc); ctx.translate(-P.cx, -P.cy);
+    const fl = Math.max(r, land * 8);
+    ctx.shadowColor = 'rgba(0,0,0,' + (0.5 * fl).toFixed(3) + ')'; ctx.shadowBlur = A.m * 0.25 * fl; ctx.shadowOffsetY = A.m * 0.12 * fl;
+    ctx.drawImage(P.canvas, P.bx, P.by);
+    ctx.restore();
+  });
+}
+function setView(v) {
+  st.view = v;
+  $('viewTabs').querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.view === v));
+  const gif = v === 'gif' && gifUrl;
+  wrap.hidden = !!gif; $('gifImg').hidden = !gif;
+  placeSel();
+}
+$('modeGroup').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  anim.mode = b.dataset.v; activate($('modeGroup'), anim.mode);
+});
+$('fromGroup').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  anim.from = b.dataset.v; activate($('fromGroup'), anim.from);
+});
+$('spin').addEventListener('change', e => { anim.spin = e.target.checked; });
+gx = GifExport.mount($('gifBox'), {
+  getLang: () => lang,
+  getSize: () => img ? { w: iw, h: ih } : null,
+  renderFrame: (ctx, w, h, p) => animFrame(ctx, w, h, anim.mode === 'out' ? 1 - p : p),
+  filename: () => anim.mode === 'out' ? 'piece-of-memory-out.gif' : 'piece-of-memory.gif',
+  defaults: { size: 480, fps: 15, dur: 3.5 },
+  onDone: r => { gifUrl = r.url; $('gifImg').src = gifUrl; $('viewGifBtn').disabled = false; setView('gif'); }
+});
+
+/* ============================== text in the gap ============================== */
+function renderChips() {
+  st.active = '0,0';                                         // there is a single text, laid out on the main piece
+  const ta = $('holeText');
+  if (document.activeElement !== ta) ta.value = st.texts['0,0'] || '';
+  ta.placeholder = t('txPlaceholder');
+  syncPos();
+  $('multiCount').textContent = t('multiCount', { n: st.extra.length, m: MAX_EXTRA });
+  $('clearExtra').disabled = !st.extra.length;
+  redraw();
+}
+$('holeText').addEventListener('input', e => { st.texts[st.active] = e.target.value; redraw(); });
+$('txBold').addEventListener('change', e => { st.tx.bold = e.target.checked; redraw(); });
+$('txColor').addEventListener('input', e => { st.tx.color = e.target.value; redraw(); });
+$('txSw').innerHTML = ['#ffffff', '#14171a', '#f3ead6', '#14b8a6', '#f4a6b7', '#ffd166'].map(c => '<button type="button" style="background:' + c + '" data-c="' + c + '" aria-label="' + c + '"></button>').join('');
+$('txSw').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  st.tx.color = b.dataset.c; $('txColor').value = st.tx.color; redraw();
+});
+/* text position: sliders + dragging the text in the "result preview" view; offsets are stored in units of the piece size */
+const tpos = k => st.tpos[k] || (st.tpos[k] = { x: 0, y: 0 });
+function syncPos() {
+  const o = st.tpos[st.active] || { x: 0, y: 0 };
+  $('txX').value = Math.round(o.x * 100); $('txY').value = Math.round(o.y * 100);
+  $('txXVal').textContent = Math.round(o.x * 100) + '%'; $('txYVal').textContent = Math.round(o.y * 100) + '%';
+}
+$('txX').addEventListener('input', e => { tpos(st.active).x = e.target.value / 100; syncPos(); redraw(); });
+$('txY').addEventListener('input', e => { tpos(st.active).y = e.target.value / 100; syncPos(); redraw(); });
+$('txReset').addEventListener('click', () => { st.tpos[st.active] = { x: 0, y: 0 }; syncPos(); redraw(); });
+$('txSize').addEventListener('input', e => { st.tx.size = +e.target.value; $('txSizeVal').textContent = e.target.value + '%'; redraw(); });
+$('dlBar').addEventListener('click', download);
+$('nudge').addEventListener('click', e => {               // keyboard activation (mouse/touch handled on pointerdown)
+  const b = e.target.closest('button'); if (b && e.detail === 0 && img) nudge(b.dataset.n);
+});
+
+/* font picker (grouped by language, every option shown in its own typeface) */
+$('txFont').innerHTML = FONT_GROUPS.map(([g, list]) => '<optgroup label="' + g + '">' + list.map(f =>
+  '<option value="' + f[0] + '" style="font-family:' + f[2].replace(/"/g, "'") + ',sans-serif">' + f[1] + '</option>').join('') + '</optgroup>').join('');
+$('txFont').value = st.tx.font;
+$('txFont').addEventListener('change', e => { st.tx.font = e.target.value; redraw(); });
+
+/* quick placement (3x3), "drag in the view" shortcut and arrow keys */
+$('anchorGrid').addEventListener('click', e => {
+  const b = e.target.closest('button'), I = TXI[st.active]; if (!b || !I) return;
+  const a = b.dataset.a, B = cellBox(I), o = tpos(st.active);      // placed against the square cell, not the knob-shaped piece
+  const left = a[1] === 'l' ? B.x : a[1] === 'c' ? B.x + (B.w - I.w) / 2 : B.x + B.w - I.w;
+  const top = a[0] === 't' ? B.y : a[0] === 'm' ? B.y + (B.h - I.h) / 2 : B.y + B.h - I.h;
+  o.x = clamp((left - I.b.x) / I.m, -1, 1); o.y = clamp((top - I.top0) / I.m, -1, 1);
+  syncPos(); redraw();
+});
+$('goTextView').addEventListener('click', () => setView('text'));
+document.addEventListener('keydown', e => {
+  if (st.view !== 'text' || !img || !/^Arrow/.test(e.key)) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) return;
+  const I = TXI[st.active]; if (!I) return;
+  e.preventDefault();
+  const s = (e.shiftKey ? 10 : 1) / I.m, o = tpos(st.active);
+  if (e.key === 'ArrowLeft') o.x -= s; else if (e.key === 'ArrowRight') o.x += s; else if (e.key === 'ArrowUp') o.y -= s; else o.y += s;
+  o.x = clamp(o.x, -1, 1); o.y = clamp(o.y, -1, 1); syncPos(); redraw();
+});
+
+/* shared colour picker (same picking method as the other maker sites) */
+['holeColor', 'txColor', 'lineColor'].forEach(id => ColorPicker.attach($(id), { getLang: () => lang }));
+
+/* ============================== init ============================== */
+buildShapes(); markShape();
+$('txSizeVal').textContent = '100%'; renderChips();
+$('tabSizeVal').textContent = '26%'; $('lineWVal').textContent = '3'; $('lineAVal').textContent = '85%';
+$('shuffleBtn').disabled = false;
+applyLang();
+makeSample();
+new ResizeObserver(() => layout()).observe(viewEl);
+window.addEventListener('resize', layout);
+</script>
+</body>
+</html>
