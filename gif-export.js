@@ -23,22 +23,26 @@
   'use strict';
 
   /* ============================== encoder ============================== */
+  /* 6 bits per channel histogram (the old 5-bit one flattened smooth gradients into visible bands),
+     weighted median-cut palette, lazily-filled nearest-colour table, 8x8 ordered dither. */
+  const BITS = 6, NB = 1 << BITS, SHIFT = 8 - BITS, MASK = NB - 1;
   function buildPalette(samples) {
-    const hist = new Uint32Array(32768), sr = new Float64Array(32768), sg = new Float64Array(32768), sb = new Float64Array(32768);
+    const size = NB * NB * NB;
+    const hist = new Uint32Array(size), sr = new Float64Array(size), sg = new Float64Array(size), sb = new Float64Array(size);
     let total = 0;
     for (const d of samples) for (let i = 0; i < d.length; i += 8) {
-      const r = d[i], g = d[i + 1], b = d[i + 2], k = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3);
+      const r = d[i], g = d[i + 1], b = d[i + 2], k = (r >> SHIFT) << (2 * BITS) | (g >> SHIFT) << BITS | (b >> SHIFT);
       hist[k]++; sr[k] += r; sg[k] += g; sb[k] += b; total++;
     }
-    const keys = []; for (let k = 0; k < 32768; k++) if (hist[k]) keys.push(k);
+    const keys = []; for (let k = 0; k < size; k++) if (hist[k]) keys.push(k);
     const boxes = [{ k: keys, n: total }];
-    const comp = (k, a) => a === 0 ? (k >> 10) & 31 : a === 1 ? (k >> 5) & 31 : k & 31, W3 = [0.9, 1.2, 0.7];
+    const comp = (k, a) => a === 0 ? (k >> (2 * BITS)) & MASK : a === 1 ? (k >> BITS) & MASK : k & MASK, W3 = [0.9, 1.2, 0.7];
     while (boxes.length < 256) {
       let bi = -1, bn = 0;
       for (let i = 0; i < boxes.length; i++) if (boxes[i].k.length > 1 && boxes[i].n > bn) { bn = boxes[i].n; bi = i; }
       if (bi < 0) break;
       const b = boxes[bi]; let axis = 0, best = -1;
-      for (let a = 0; a < 3; a++) { let mn = 99, mx = -1; for (const k of b.k) { const v = comp(k, a); if (v < mn) mn = v; if (v > mx) mx = v; } const rg = (mx - mn) * W3[a]; if (rg > best) { best = rg; axis = a; } }
+      for (let a = 0; a < 3; a++) { let mn = 999, mx = -1; for (const k of b.k) { const v = comp(k, a); if (v < mn) mn = v; if (v > mx) mx = v; } const rg = (mx - mn) * W3[a]; if (rg > best) { best = rg; axis = a; } }
       b.k.sort((x, y) => comp(x, axis) - comp(y, axis));
       let acc = 0, cut = 1; const half = b.n / 2;
       for (let i = 0; i < b.k.length - 1; i++) { acc += hist[b.k[i]]; cut = i + 1; if (acc >= half) break; }
@@ -47,23 +51,27 @@
     }
     const pal = new Uint8Array(768);
     boxes.forEach((b, i) => { let r = 0, g = 0, bl = 0, n = 0; for (const k of b.k) { r += sr[k]; g += sg[k]; bl += sb[k]; n += hist[k]; } n = n || 1; pal[i * 3] = Math.round(r / n); pal[i * 3 + 1] = Math.round(g / n); pal[i * 3 + 2] = Math.round(bl / n); });
-    const cnt = boxes.length, lut = new Uint8Array(32768);
-    for (let k = 0; k < 32768; k++) {
-      let r, g, b;
-      if (hist[k]) { r = sr[k] / hist[k]; g = sg[k] / hist[k]; b = sb[k] / hist[k]; } else { r = ((k >> 10) & 31) * 8 + 4; g = ((k >> 5) & 31) * 8 + 4; b = (k & 31) * 8 + 4; }
-      let bd = 1e12, bi = 0;
-      for (let i = 0; i < cnt; i++) { const dr = r - pal[i * 3], dg = g - pal[i * 3 + 1], db = b - pal[i * 3 + 2], dd = dr * dr * .9 + dg * dg * 1.2 + db * db * .7; if (dd < bd) { bd = dd; bi = i; } }
-      lut[k] = bi;
-    }
-    return { pal, lut };
+    return { pal, cnt: boxes.length, lut: new Int16Array(size).fill(-1) };
   }
-  const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-  function quantize(data, w, h, lut, dith) {
-    const out = new Uint8Array(w * h); let i = 0, p = 0;
+  function nearestPal(P, r, g, b) {
+    let bd = 1e12, bi = 0; const pal = P.pal;
+    for (let i = 0; i < P.cnt; i++) { const dr = r - pal[i * 3], dg = g - pal[i * 3 + 1], db = b - pal[i * 3 + 2], dd = dr * dr * .9 + dg * dg * 1.2 + db * db * .7; if (dd < bd) { bd = dd; bi = i; } }
+    return bi;
+  }
+  const B8 = [0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
+    3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21];
+  const DITHER_AMP = 5;
+  function quantize(data, w, h, P, dith) {
+    const out = new Uint8Array(w * h), lut = P.lut; let i = 0, p = 0;
+    const half = (1 << SHIFT) / 2;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++, p += 4) {
       let r = data[p], g = data[p + 1], b = data[p + 2];
-      if (dith) { const o = (B4[(y & 3) << 2 | (x & 3)] - 7.5) * 1.6; r += o; g += o; b += o; r = r < 0 ? 0 : r > 255 ? 255 : r; g = g < 0 ? 0 : g > 255 ? 255 : g; b = b < 0 ? 0 : b > 255 ? 255 : b; }
-      out[i++] = lut[(r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)];
+      if (dith) { const o = ((B8[(y & 7) << 3 | (x & 7)] + 0.5) / 64 - 0.5) * DITHER_AMP; r += o; g += o; b += o; r = r < 0 ? 0 : r > 255 ? 255 : r; g = g < 0 ? 0 : g > 255 ? 255 : g; b = b < 0 ? 0 : b > 255 ? 255 : b; }
+      r |= 0; g |= 0; b |= 0;
+      const k = (r >> SHIFT) << (2 * BITS) | (g >> SHIFT) << BITS | (b >> SHIFT);
+      let v = lut[k];
+      if (v < 0) { v = nearestPal(P, ((r >> SHIFT) << SHIFT) + half, ((g >> SHIFT) << SHIFT) + half, ((b >> SHIFT) << SHIFT) + half); lut[k] = v; }
+      out[i++] = v;
     }
     return out;
   }
@@ -111,11 +119,11 @@
     progress(0, n, 'palette'); await tick();
     const K = Math.min(n, 10), samples = [];
     for (let i = 0; i < K; i++) samples.push(grab(Math.floor(i * (n - 1) / Math.max(1, K - 1))));
-    const { pal, lut } = buildPalette(samples); samples.length = 0;
+    const P = buildPalette(samples); samples.length = 0;
 
     const parts = [], base = Math.max(2, Math.round(100 / fps));
     const hd = new Uint8Array(13 + 768 + 19);
-    hd.set([71, 73, 70, 56, 57, 97, w & 255, w >> 8, h & 255, h >> 8, 0xF7, 0, 0]); hd.set(pal, 13);
+    hd.set([71, 73, 70, 56, 57, 97, w & 255, w >> 8, h & 255, h >> 8, 0xF7, 0, 0]); hd.set(P.pal, 13);
     hd.set([0x21, 0xFF, 11, 78, 69, 84, 83, 67, 65, 80, 69, 50, 46, 48, 3, 1, 0, 0, 0], 13 + 768);
     parts.push(hd);
     let prev = null, prevDelay = 0;
@@ -127,7 +135,7 @@
     };
     for (let f = 0; f < n; f++) {
       if (cancelled()) throw new Error('cancel');
-      const idx = quantize(grab(f), w, h, lut, o.dither !== false);
+      const idx = quantize(grab(f), w, h, P, o.dither !== false);
       if (prev && same(prev, idx)) prevDelay += base;
       else { flush(); prev = idx; prevDelay = base; }
       progress(f + 1, n, 'frame');
